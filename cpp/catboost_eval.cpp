@@ -19,6 +19,7 @@ int main(int argc, char *argv[]) {
     std::string input_file;
     std::string output_file;
     std::string model_file;
+    std::string time_output;
     for (int it = 1; it < argc; ++it) {
         std::string arg(argv[it]);
         if (arg == "-input") {
@@ -27,6 +28,8 @@ int main(int argc, char *argv[]) {
             output_file = argv[it + 1];
         } else if (arg == "-model") {
             model_file = argv[it + 1];
+        } else if (arg == "-time") {
+            time_output = argv[it + 1];
         }
     }
     std::fstream fin(input_file, std::fstream::in);
@@ -43,18 +46,20 @@ int main(int argc, char *argv[]) {
     fin.close();
 
     NCatboostStandalone::TOwningEvaluator evaluator(model_file);
-    std::chrono::time_point start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now();
     for (auto& obj : data) {
         obj.prediction = evaluator.Apply(obj.features,
                                          NCatboostStandalone::EPredictionType::RawValue);
     }
-    std::chrono::time_point end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
     double time = std::chrono::duration<double>(end - start).count();
 
     for (auto& it : data) {
         fout << it.id << DELIMITER << it.prediction  << '\n';
     }
     fout.close();
-    std::cout << time;
+    std::fstream ftout(time_output, std::fstream::out);
+    ftout << time;
+    ftout.close();
     return 0;
 }

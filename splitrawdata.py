@@ -1,8 +1,9 @@
 import os
 import pandas as pd
 from sklearn.model_selection import train_test_split
+import lightgbm as lgb
 
-DATA_PATH = "./data"
+DATA_PATH = "/data/kondratov/data"
 DATA_NUMBER = 1
 
 SIMPLE_FEATURE_COLUMNS = ['ncl[0]', 'ncl[1]', 'ncl[2]', 'ncl[3]', 'avg_cs[0]', 'avg_cs[1]',
@@ -24,8 +25,12 @@ SIMPLE_FEATURE_COLUMNS = ['ncl[0]', 'ncl[1]', 'ncl[2]', 'ncl[3]', 'avg_cs[0]', '
     'Mextra_DY2[3]', 'Mextra_DX2[0]', 'Mextra_DX2[1]', 'Mextra_DX2[2]',
     'Mextra_DX2[3]', 'P', 'PT', ]
 
-def split_raw_data(path='muon_light_transformed_weight.hdf', random_state=None):
+def split_raw_data(path='muon_light_transformed_weight.hdf', random_state=None, downsample=True):
     data = pd.read_hdf(os.path.join(DATA_PATH, path), random_state=random_state)
+    if downsample:
+        false_data = data.loc[data.label == 0]
+        true_data = data.loc[data.label == 1]
+        data = (false_data.append(true_data.sample(len(false_data)))).sample(frac=1)
 
     train_data, test = train_test_split(data, test_size=0.2, random_state=random_state)
     test.to_csv(os.path.join(DATA_PATH, 'transformed_test.csv.gz'),
@@ -39,5 +44,25 @@ def split_raw_data(path='muon_light_transformed_weight.hdf', random_state=None):
     lr_train.to_csv(os.path.join(DATA_PATH, 'lr_train.csv.gz'),
                     compression='infer')
     del lr_train
-    train.to_csv(os.path.join(DATA_PATH, 'transformed_train_%i.csv.gz') % (DATA_NUMBER),
+    train.to_csv(os.path.join(DATA_PATH, 'transformed_train_1.csv.gz'),
                  compression='infer')
+
+def transform_lgb():
+    lr_train = pd.read_csv(os.path.join(DATA_PATH, 'lr_train.csv.gz'), compression='infer')
+    train = pd.read_csv(os.path.join(DATA_PATH, 'transformed_train_1.csv.gz'), compression='infer')
+    test = pd.read_csv(os.path.join(DATA_PATH, 'transformed_test.csv.gz'), compression='infer')
+    lgb_train_lr = lgb.Dataset(lr_train.loc[:, SIMPLE_FEATURE_COLUMNS],
+                               lr_train.label,
+                               weight=lr_train.weight,
+                               free_raw_data=False)
+    lgb_train_lr.save_binary(os.path.join(DATA_PATH, 'lr_train.bin'))
+    lgb_train = lgb.Dataset(train.loc[:, SIMPLE_FEATURE_COLUMNS],
+                            train.label,
+                            weight=train.weight,
+                            free_raw_data=False)
+    lgb_train_lr.save_binary(os.path.join(DATA_PATH, 'transformed_train_1.bin'))
+    lgb_test = lgb.Dataset(test.loc[:, SIMPLE_FEATURE_COLUMNS],
+                           test.label,
+                           weight=test.weight,
+                           free_raw_data=False)
+    lgb_test.save_binary(os.path.join(DATA_PATH, 'transformed_test.bin'))
