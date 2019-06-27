@@ -10,7 +10,7 @@ endif
 
 
 # Path to LightGBM-CEGB
-LGBM_CEGB = /mnt/yukondratov/LightGBM-CEGB
+LGBM_CEGB = 
 
 INCLUDE = $(LGBM_CEGB)/include
 CEGB_SRC =$(LGBM_CEGB)/build/CMakeFiles/lightgbm.dir/src
@@ -21,10 +21,7 @@ OBJ_FILES = $(CEGB_SRC)/application/*.cpp.o $(CEGB_SRC)/boosting/*.cpp.o \
 
 all: build
 
-build: catboost
-
-run: catboost
-	./catboost_eval
+build: catboost cegb gate
 
 catboost: catboost_eval.cpp parser.cpp parser.h
 	$(CXX) $(CXXFLAGS) parser.cpp ripped_evaluator/evaluator.cpp \

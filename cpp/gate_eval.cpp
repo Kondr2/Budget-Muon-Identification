@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
     auto start = std::chrono::high_resolution_clock::now();
     for (size_t it = 0; it < data.size(); ++it) {
         gate_model->Predict(data[it].features.data(), &output[0], &stop);
-        if (output[0] > threshold) {
+        if (output[0] > 0.5) {
             output[0] = 0;
             first_model->PredictRaw(data[it].features.data(), &output[0], &stop);
         } else {
